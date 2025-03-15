@@ -95,7 +95,7 @@ export default function Home() {
     queryFn: async () => {
       try {
         const response = await axios.get(
-          `http://api.openweathermap.org/data/2.5/forecast?q=${place}&appid=${apiKey}&cnt=56`
+          `https://api.openweathermap.org/data/2.5/forecast?q=${place}&appid=${apiKey}&cnt=56`
         );
         return response.data;
       } catch {
