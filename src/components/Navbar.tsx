@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MdWbSunny, MdMyLocation, MdOutlineLocationOn } from "react-icons/md";
+import { MdWbSunny, MdOutlineLocationOn } from "react-icons/md";
 import SearchBox from './SearchBox';
 import axios from 'axios';
 import { useAtom } from 'jotai';
@@ -9,14 +9,19 @@ import { loadinCityAtom, placeAtom } from '@/app/atom';
 
 type Props = { location?: string };
 
+interface City {
+  name: string;
+  // Add other properties if needed
+}
+
 const Navbar = ({ location }: Props) => {
   const [city, setCity] = useState("");
   const [error, setError] = useState("");
   const apiKey = process.env.NEXT_PUBLIC_WEATHER_KEY;
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [place, setPlace] = useAtom(placeAtom);
-  const [_, setLoadingCity] = useAtom(loadinCityAtom);
+  const [, setPlace] = useAtom(placeAtom);
+  const [, setLoadingCity] = useAtom(loadinCityAtom);
 
   function handleSuggestionOnClick(value: string) {
     setCity(value);
@@ -44,14 +49,14 @@ const Navbar = ({ location }: Props) => {
     setCity(value);
     if (value.length >= 3) {
       try {
-        const response = await axios.get(
+        const response = await axios.get<{ list: City[] }>(
           `http://api.openweathermap.org/data/2.5/find?q=${value}&appid=${apiKey}`
         );
-        const suggestions = response.data.list.map((item: any) => item.name);
+        const suggestions = response.data.list.map((item) => item.name);
         setSuggestions(suggestions);
         setError('');
         setShowSuggestions(true);
-      } catch (err) {
+      } catch {
         setSuggestions([]);
         setShowSuggestions(false);
       }
@@ -64,14 +69,11 @@ const Navbar = ({ location }: Props) => {
   return (
     <nav className="shadow-sm sticky top-0 left-0 z-50 bg-white">
       <div className="h-[80px] w-full flex items-center justify-between max-w-7xl px-3 mx-auto">
-        {/* Replaced <p> with <div> to properly contain <h2> */}
         <div className="flex items-center justify-center gap-2">
           <h2 className="text-gray-500 text-3xl">Weather</h2>
           <MdWbSunny className="text-3xl mt-1 text-yellow-300" />
         </div>
-
         <section className="flex gap-2 items-center">
-          <MdMyLocation className="text-2xl text-gray-400 hover:opacity-80 cursor-pointer" />
           <MdOutlineLocationOn className="text-3xl" />
           <p className="text-slate-900/80 text-sm">{location}</p>
           <div className="relative">
@@ -81,12 +83,10 @@ const Navbar = ({ location }: Props) => {
               onChange={(e) => handleInputChange(e.target.value)}
             />
             <SuggestionsBox
-              {...{
-                showSuggestions,
-                suggestions,
-                handleSuggestionOnClick,
-                error
-              }}
+              showSuggestions={showSuggestions}
+              suggestions={suggestions}
+              handleSuggestionOnClick={handleSuggestionOnClick}
+              error={error}
             />
           </div>
         </section>

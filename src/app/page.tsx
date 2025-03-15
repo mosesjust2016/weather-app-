@@ -83,7 +83,6 @@ type Coordinates = {
 
 const apiKey = process.env.NEXT_PUBLIC_WEATHER_KEY;
 
-// Skeleton Loader Component
 function HomeSkeleton() {
   return (
     <div className="flex flex-col gap-4 bg-gray-100 min-h-screen">
@@ -95,14 +94,12 @@ function HomeSkeleton() {
               <div className="h-8 w-24 bg-gray-300 rounded animate-pulse"></div>
               <div className="h-6 w-20 bg-gray-300 rounded animate-pulse"></div>
             </div>
-
             <Container className="gap-10 px-6 items-center">
               <div className="flex flex-col px-4 space-y-2">
                 <div className="h-12 w-16 bg-gray-300 rounded animate-pulse"></div>
                 <div className="h-4 w-20 bg-gray-300 rounded animate-pulse"></div>
                 <div className="h-4 w-24 bg-gray-300 rounded animate-pulse"></div>
               </div>
-
               <div className="flex gap-10 overflow-x-auto w-full justify-between pr-3">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="flex flex-col gap-2 items-center">
@@ -114,13 +111,11 @@ function HomeSkeleton() {
               </div>
             </Container>
           </div>
-
           <div className="flex gap-4">
             <Container className="w-fit flex-col px-4 items-center">
               <div className="h-4 w-20 bg-gray-300 rounded animate-pulse mb-2"></div>
               <div className="h-12 w-12 bg-gray-300 rounded-full animate-pulse"></div>
             </Container>
-
             <Container className="bg-yellow-300/80 px-6 gap-4 flex flex-wrap">
               <div className="space-y-2">
                 {[...Array(6)].map((_, i) => (
@@ -130,7 +125,6 @@ function HomeSkeleton() {
             </Container>
           </div>
         </section>
-
         <section className="flex w-full flex-col gap-4">
           <div className="h-8 w-32 bg-gray-300 rounded animate-pulse"></div>
           {[...Array(7)].map((_, i) => (
@@ -152,10 +146,9 @@ function HomeSkeleton() {
   );
 }
 
-// Main Component
 export default function Home() {
-  const [place, setPlace] = useAtom(placeAtom);
-  const [_, setLoadingCity] = useAtom(loadinCityAtom);
+  const [place] = useAtom(placeAtom);
+  const [loadingCity] = useAtom(loadinCityAtom); // Use loadingCity to avoid unused variable
 
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ['repoData'],
@@ -165,7 +158,7 @@ export default function Home() {
           `http://api.openweathermap.org/data/2.5/forecast?q=${place}&appid=${apiKey}&cnt=56`
         );
         return response.data;
-      } catch (err) {
+      } catch {
         throw new Error('Error fetching data');
       }
     },
@@ -191,7 +184,7 @@ export default function Home() {
     });
   });
 
-  if (isPending) return <HomeSkeleton />;
+  if (isPending || loadingCity) return <HomeSkeleton />;
 
   if (error) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -213,7 +206,6 @@ export default function Home() {
                 </span>
               </h2>
             </div>
-
             <Container className="gap-10 px-6 items-center">
               <div className="flex flex-col px-4">
                 <span className="text-5xl">
@@ -228,7 +220,6 @@ export default function Home() {
                   <span>{convertKelvinToCelsius(firstData?.main.temp_max ?? 0)}°↓</span>
                 </p>
               </div>
-
               <div className="flex gap-10 sm:gap-16 overflow-x-auto w-full justify-between pr-3">
                 {data?.list.map((d, i) => (
                   <div key={i} className="flex flex-col justify-between gap-2 items-center text-xs font-semibold">
@@ -240,18 +231,16 @@ export default function Home() {
               </div>
             </Container>
           </div>
-
           <div className="flex gap-4">
             <Container className="w-fit justify-center flex-col px-4 items-center">
               <p className="capitalize text-center">{firstData.weather[0].description}</p>
               <WeatherIcon iconName={getDayOrNightIcon(firstData.weather[0].icon, firstData.dt_txt)} />
             </Container>
-
             <Container className="bg-yellow-300/80 px-6 gap-4 justify-between overflow-x-auto flex flex-wrap">
               <WeatherDetails 
                 visibility={metersToKilometers(firstData?.visibility ?? 10000)} 
                 airPressure={`${firstData?.main.pressure} hPa`}
-                humidity={`${firstData?.main.humidity} % `}
+                humidity={`${firstData?.main.humidity} %`}
                 sunrise={format(fromUnixTime(data.city.sunrise ?? 1702989452), "H:mm")}
                 sunset={format(fromUnixTime(data.city.sunset ?? 1702989452), "H:mm")}
                 WindSpeed={convertWindSpeed(firstData?.wind.speed ?? 1.64)}
@@ -259,30 +248,27 @@ export default function Home() {
             </Container>
           </div>
         </section>
-
         <section className="flex w-full flex-col gap-4">
           <p className="text-2xl">Forecast (7 Day)</p>
-          {firstDataForEachDate.map((d, i) => {
-            return (
-              <ForecastWeatherDetail
-                key={i}
-                description={d?.weather[0].description ?? ""}
-                weatherIcon={d?.weather[0].icon ?? "01d"}
-                date={format(parseISO(d?.dt_txt ?? ""), "dd,MM")}
-                day={format(parseISO(d?.dt_txt ?? ""), "EEEE")}
-                feels_like={d?.main.feels_like ?? 0}
-                temp={d?.main.temp ?? 0}
-                temp_max={d?.main.temp_max ?? 0}
-                temp_min={d?.main.temp_min ?? 0}
-                visibility={metersToKilometers(firstData?.visibility ?? 10000)} 
-                airPressure={`${d?.main.pressure} hPa`}
-                humidity={`${d?.main.humidity} % `}
-                sunrise={format(fromUnixTime(data?.city.sunrise ?? 1702989452), "H:mm")}
-                sunset={format(fromUnixTime(data?.city.sunset ?? 1702989452), "H:mm")}
-                WindSpeed={convertWindSpeed(d?.wind.speed ?? 1.64)}
-              />
-            );
-          })}
+          {firstDataForEachDate.map((d, i) => (
+            <ForecastWeatherDetail
+              key={i}
+              description={d?.weather[0].description ?? ""}
+              weatherIcon={d?.weather[0].icon ?? "01d"}
+              date={format(parseISO(d?.dt_txt ?? ""), "dd,MM")}
+              day={format(parseISO(d?.dt_txt ?? ""), "EEEE")}
+              feels_like={d?.main.feels_like ?? 0}
+              temp={d?.main.temp ?? 0}
+              temp_max={d?.main.temp_max ?? 0}
+              temp_min={d?.main.temp_min ?? 0}
+              visibility={metersToKilometers(firstData?.visibility ?? 10000)}
+              airPressure={`${d?.main.pressure} hPa`}
+              humidity={`${d?.main.humidity} %`}
+              sunrise={format(fromUnixTime(data?.city.sunrise ?? 1702989452), "H:mm")}
+              sunset={format(fromUnixTime(data?.city.sunset ?? 1702989452), "H:mm")}
+              WindSpeed={convertWindSpeed(d?.wind.speed ?? 1.64)}
+            />
+          ))}
         </section>
       </main>
     </div>
