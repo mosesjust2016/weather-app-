@@ -110,19 +110,32 @@ export default function Home() {
 
   const firstData = data?.list[0];
 
+
+  interface WeatherEntry {
+    dt: number;
+    dt_txt: string;
+    weather: { icon: string }[];
+    main: { temp: number };
+  }
+  
+  
   const uniqueDates = [
     ...new Set(
-      data?.list.map((entry) => new Date(entry.dt * 1000).toISOString().split("T")[0])
-    )
+      data?.list.map((entry: WeatherEntry) =>
+        new Date(entry.dt * 1000).toISOString().split("T")[0]
+      )
+    ),
   ];
+  
 
   const firstDataForEachDate = uniqueDates.map((date) => {
-    return data?.list.find((entry) => {
+    return data?.list.find((entry: { dt: number }) => {
       const entryDate = new Date(entry.dt * 1000).toISOString().split("T")[0];
       const entryTime = new Date(entry.dt * 1000).getHours();
       return entryDate === date && entryTime >= 6;
     });
   });
+  
 
   if (isPending || loadingCity) return <HomeSkeleton />;
 
@@ -161,13 +174,15 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex gap-10 sm:gap-16 overflow-x-auto w-full justify-between pr-3">
-                {data?.list.map((d, i) => (
-                  <div key={i} className="flex flex-col justify-between gap-2 items-center text-xs font-semibold">
-                    <p className="whitespace-nowrap">{format(parseISO(d.dt_txt ?? ''), 'h.mm a')}</p>
-                    <WeatherIcon iconName={getDayOrNightIcon(d.weather[0].icon, d.dt_txt)} />
-                    <p>{convertKelvinToCelsius(d?.main.temp ?? 0)}°</p>
-                  </div>
-                ))}
+              {data?.list.map((d: WeatherEntry, i: number) => (
+                <div key={i} className="flex flex-col justify-between gap-2 items-center text-xs font-semibold">
+                  <p className="whitespace-nowrap">{format(parseISO(d.dt_txt ?? ''), 'h.mm a')}</p>
+                  <WeatherIcon iconName={getDayOrNightIcon(d.weather[0].icon, d.dt_txt)} />
+                  <p>{convertKelvinToCelsius(d?.main.temp ?? 0)}°</p>
+                </div>
+              ))}
+
+
               </div>
             </Container>
           </div>
