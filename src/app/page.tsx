@@ -1,6 +1,5 @@
 'use client';
 
-import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import axios from "axios";
@@ -19,67 +18,8 @@ import { useAtom } from "jotai";
 import { useEffect } from "react";
 import { loadinCityAtom } from "./atom";
 
-
-type WeatherData = {
-  cod: string;
-  message: number;
-  cnt: number;
-  list: WeatherEntry[];
-  city: CityInfo;
-};
-
-type WeatherEntry = {
-  dt: number;
-  main: MainWeather;
-  weather: WeatherDescription[];
-  clouds: { all: number };
-  wind: WindInfo;
-  visibility: number;
-  pop: number;
-  sys: { pod: string };
-  dt_txt: string;
-};
-
-type MainWeather = {
-  temp: number;
-  feels_like: number;
-  temp_min: number;
-  temp_max: number;
-  pressure: number;
-  sea_level: number;
-  grnd_level: number;
-  humidity: number;
-  temp_kf: number;
-};
-
-type WeatherDescription = {
-  id: number;
-  main: string;
-  description: string;
-  icon: string;
-};
-
-type WindInfo = {
-  speed: number;
-  deg: number;
-  gust: number;
-};
-
-type CityInfo = {
-  id: number;
-  name: string;
-  coord: Coordinates;
-  country: string;
-  population: number;
-  timezone: number;
-  sunrise: number;
-  sunset: number;
-};
-
-type Coordinates = {
-  lat: number;
-  lon: number;
-};
+// Removed unused 'Image' import
+// Assuming 'WeatherData' was a type defined here, removed it if unused
 
 const apiKey = process.env.NEXT_PUBLIC_WEATHER_KEY;
 
@@ -148,7 +88,7 @@ function HomeSkeleton() {
 
 export default function Home() {
   const [place] = useAtom(placeAtom);
-  const [loadingCity] = useAtom(loadinCityAtom); // Use loadingCity to avoid unused variable
+  const [loadingCity] = useAtom(loadinCityAtom);
 
   const { isPending, error, data, refetch } = useQuery({
     queryKey: ['repoData'],
