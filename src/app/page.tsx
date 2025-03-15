@@ -1,103 +1,290 @@
+'use client';
+
 import Image from "next/image";
+import { useQuery } from "@tanstack/react-query";
+import Navbar from "@/components/Navbar";
+import axios from "axios";
+import { fromUnixTime, parseISO } from "date-fns";
+import format from "date-fns/format";
+import Container from "@/components/Container";
+import { convertKelvinToCelsius } from "@/utils/convertKelvinToCelsius";
+import WeatherIcon from "./WeatherIcon";
+import { getDayOrNightIcon } from "@/utils/getDayOrNightIcon";
+import WeatherDetails from "@/components/WeatherDetails";
+import { metersToKilometers } from "@/utils/metersToKilometers";
+import { convertWindSpeed } from "@/utils/convertWindSpeed";
+import ForecastWeatherDetail from "@/components/ForecastWeatherDetail";
+import { placeAtom } from "./atom";
+import { useAtom } from "jotai";
+import { useEffect } from "react";
+import { loadinCityAtom } from "./atom";
 
-export default function Home() {
+
+type WeatherData = {
+  cod: string;
+  message: number;
+  cnt: number;
+  list: WeatherEntry[];
+  city: CityInfo;
+};
+
+type WeatherEntry = {
+  dt: number;
+  main: MainWeather;
+  weather: WeatherDescription[];
+  clouds: { all: number };
+  wind: WindInfo;
+  visibility: number;
+  pop: number;
+  sys: { pod: string };
+  dt_txt: string;
+};
+
+type MainWeather = {
+  temp: number;
+  feels_like: number;
+  temp_min: number;
+  temp_max: number;
+  pressure: number;
+  sea_level: number;
+  grnd_level: number;
+  humidity: number;
+  temp_kf: number;
+};
+
+type WeatherDescription = {
+  id: number;
+  main: string;
+  description: string;
+  icon: string;
+};
+
+type WindInfo = {
+  speed: number;
+  deg: number;
+  gust: number;
+};
+
+type CityInfo = {
+  id: number;
+  name: string;
+  coord: Coordinates;
+  country: string;
+  population: number;
+  timezone: number;
+  sunrise: number;
+  sunset: number;
+};
+
+type Coordinates = {
+  lat: number;
+  lon: number;
+};
+
+const apiKey = process.env.NEXT_PUBLIC_WEATHER_KEY;
+
+// Skeleton Loader Component
+function HomeSkeleton() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex flex-col gap-4 bg-gray-100 min-h-screen">
+      <Navbar location="" />
+      <main className="px-3 max-w-7xl mx-auto flex flex-col gap-9 w-full pb-10 pt-4">
+        <section className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex gap-1 items-end">
+              <div className="h-8 w-24 bg-gray-300 rounded animate-pulse"></div>
+              <div className="h-6 w-20 bg-gray-300 rounded animate-pulse"></div>
+            </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+            <Container className="gap-10 px-6 items-center">
+              <div className="flex flex-col px-4 space-y-2">
+                <div className="h-12 w-16 bg-gray-300 rounded animate-pulse"></div>
+                <div className="h-4 w-20 bg-gray-300 rounded animate-pulse"></div>
+                <div className="h-4 w-24 bg-gray-300 rounded animate-pulse"></div>
+              </div>
+
+              <div className="flex gap-10 overflow-x-auto w-full justify-between pr-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex flex-col gap-2 items-center">
+                    <div className="h-4 w-12 bg-gray-300 rounded animate-pulse"></div>
+                    <div className="h-8 w-8 bg-gray-300 rounded-full animate-pulse"></div>
+                    <div className="h-4 w-8 bg-gray-300 rounded animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </Container>
+          </div>
+
+          <div className="flex gap-4">
+            <Container className="w-fit flex-col px-4 items-center">
+              <div className="h-4 w-20 bg-gray-300 rounded animate-pulse mb-2"></div>
+              <div className="h-12 w-12 bg-gray-300 rounded-full animate-pulse"></div>
+            </Container>
+
+            <Container className="bg-yellow-300/80 px-6 gap-4 flex flex-wrap">
+              <div className="space-y-2">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                ))}
+              </div>
+            </Container>
+          </div>
+        </section>
+
+        <section className="flex w-full flex-col gap-4">
+          <div className="h-8 w-32 bg-gray-300 rounded animate-pulse"></div>
+          {[...Array(7)].map((_, i) => (
+            <Container key={i} className="px-4 py-2 flex gap-4">
+              <div className="h-12 w-12 bg-gray-300 rounded-full animate-pulse"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-6 w-20 bg-gray-300 rounded animate-pulse"></div>
+                <div className="h-4 w-32 bg-gray-300 rounded animate-pulse"></div>
+                <div className="flex gap-2">
+                  <div className="h-4 w-12 bg-gray-300 rounded animate-pulse"></div>
+                  <div className="h-4 w-12 bg-gray-300 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </Container>
+          ))}
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+    </div>
+  );
+}
+
+// Main Component
+export default function Home() {
+  const [place, setPlace] = useAtom(placeAtom);
+  const [_, setLoadingCity] = useAtom(loadinCityAtom);
+
+  const { isPending, error, data, refetch } = useQuery({
+    queryKey: ['repoData'],
+    queryFn: async () => {
+      try {
+        const response = await axios.get(
+          `http://api.openweathermap.org/data/2.5/forecast?q=${place}&appid=${apiKey}&cnt=56`
+        );
+        return response.data;
+      } catch (err) {
+        throw new Error('Error fetching data');
+      }
+    },
+  });
+
+  useEffect(() => {
+    refetch();
+  }, [place, refetch]);
+
+  const firstData = data?.list[0];
+
+  const uniqueDates = [
+    ...new Set(
+      data?.list.map((entry) => new Date(entry.dt * 1000).toISOString().split("T")[0])
+    )
+  ];
+
+  const firstDataForEachDate = uniqueDates.map((date) => {
+    return data?.list.find((entry) => {
+      const entryDate = new Date(entry.dt * 1000).toISOString().split("T")[0];
+      const entryTime = new Date(entry.dt * 1000).getHours();
+      return entryDate === date && entryTime >= 6;
+    });
+  });
+
+  if (isPending) return <HomeSkeleton />;
+
+  if (error) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <p>Error fetching data</p>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-4 bg-gray-100 min-h-screen">
+      <Navbar location={data?.city.name} />
+      <main className="px-3 max-w-7xl mx-auto flex flex-col gap-9 w-full pb-10 pt-4">
+        <section className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex gap-1 items-end">
+              <h2 className="text-2xl">
+                {format(parseISO(firstData.dt_txt ?? ''), 'EEEE')}
+                <span className="text-lg ml-1">
+                  ({format(parseISO(firstData.dt_txt ?? ''), 'dd.MM.yyy')})
+                </span>
+              </h2>
+            </div>
+
+            <Container className="gap-10 px-6 items-center">
+              <div className="flex flex-col px-4">
+                <span className="text-5xl">
+                  {convertKelvinToCelsius(firstData?.main.temp ?? 0)}°
+                </span>
+                <p className="text-xs space-x-1 whitespace-nowrap">
+                  <span>Feel Like</span>
+                  <span>{convertKelvinToCelsius(firstData?.main.feels_like ?? 0)}°</span>
+                </p>
+                <p className="text-xs space-x-2">
+                  <span>{convertKelvinToCelsius(firstData?.main.temp_min ?? 0)}°↑</span>
+                  <span>{convertKelvinToCelsius(firstData?.main.temp_max ?? 0)}°↓</span>
+                </p>
+              </div>
+
+              <div className="flex gap-10 sm:gap-16 overflow-x-auto w-full justify-between pr-3">
+                {data?.list.map((d, i) => (
+                  <div key={i} className="flex flex-col justify-between gap-2 items-center text-xs font-semibold">
+                    <p className="whitespace-nowrap">{format(parseISO(d.dt_txt ?? ''), 'h.mm a')}</p>
+                    <WeatherIcon iconName={getDayOrNightIcon(d.weather[0].icon, d.dt_txt)} />
+                    <p>{convertKelvinToCelsius(d?.main.temp ?? 0)}°</p>
+                  </div>
+                ))}
+              </div>
+            </Container>
+          </div>
+
+          <div className="flex gap-4">
+            <Container className="w-fit justify-center flex-col px-4 items-center">
+              <p className="capitalize text-center">{firstData.weather[0].description}</p>
+              <WeatherIcon iconName={getDayOrNightIcon(firstData.weather[0].icon, firstData.dt_txt)} />
+            </Container>
+
+            <Container className="bg-yellow-300/80 px-6 gap-4 justify-between overflow-x-auto flex flex-wrap">
+              <WeatherDetails 
+                visibility={metersToKilometers(firstData?.visibility ?? 10000)} 
+                airPressure={`${firstData?.main.pressure} hPa`}
+                humidity={`${firstData?.main.humidity} % `}
+                sunrise={format(fromUnixTime(data.city.sunrise ?? 1702989452), "H:mm")}
+                sunset={format(fromUnixTime(data.city.sunset ?? 1702989452), "H:mm")}
+                WindSpeed={convertWindSpeed(firstData?.wind.speed ?? 1.64)}
+              />
+            </Container>
+          </div>
+        </section>
+
+        <section className="flex w-full flex-col gap-4">
+          <p className="text-2xl">Forecast (7 Day)</p>
+          {firstDataForEachDate.map((d, i) => {
+            return (
+              <ForecastWeatherDetail
+                key={i}
+                description={d?.weather[0].description ?? ""}
+                weatherIcon={d?.weather[0].icon ?? "01d"}
+                date={format(parseISO(d?.dt_txt ?? ""), "dd,MM")}
+                day={format(parseISO(d?.dt_txt ?? ""), "EEEE")}
+                feels_like={d?.main.feels_like ?? 0}
+                temp={d?.main.temp ?? 0}
+                temp_max={d?.main.temp_max ?? 0}
+                temp_min={d?.main.temp_min ?? 0}
+                visibility={metersToKilometers(firstData?.visibility ?? 10000)} 
+                airPressure={`${d?.main.pressure} hPa`}
+                humidity={`${d?.main.humidity} % `}
+                sunrise={format(fromUnixTime(data?.city.sunrise ?? 1702989452), "H:mm")}
+                sunset={format(fromUnixTime(data?.city.sunset ?? 1702989452), "H:mm")}
+                WindSpeed={convertWindSpeed(d?.wind.speed ?? 1.64)}
+              />
+            );
+          })}
+        </section>
+      </main>
     </div>
   );
 }

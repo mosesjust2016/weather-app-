@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Weather App
 
-## Getting Started
+A modern, responsive weather forecasting application built with Next.js. This app provides real-time weather data and a 7-day forecast using the OpenWeatherMap API. It features a sleek, user-friendly interface styled with Tailwind CSS, enhanced with dynamic class handling via clsx.
 
-First, run the development server:
+## Key Features:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Current Weather:** Displays temperature, feels-like temperature, min/max temperatures, and detailed weather conditions for the selected location.
+- **Hourly Forecast:** Shows hourly weather updates with icons and temperatures.
+- **7-Day Forecast:** Provides a daily weather overview with detailed metrics like humidity, wind speed, and visibility.
+- **Location Search:** Includes an autocomplete search bar powered by OpenWeatherMap's API for easy city selection.
+- **Skeleton Loading:** Implements a smooth loading experience with animated placeholders during data fetching.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Next.js**: For server-side rendering and a robust React framework.
+- **Jotai**: Lightweight state management for handling location and loading states.
+- **date-fns**: For efficient date formatting and manipulation.
+- **Axios**: For making HTTP requests to the OpenWeatherMap API.
+- **React Query**: For seamless data fetching, caching, and synchronization.
+- **clsx**: For conditional class name management.
+- **Tailwind CSS**: For rapid, responsive styling with a utility-first approach.
+- **OpenWeatherMap API**: Provides accurate, real-time weather data.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Getting Started:
 
-## Learn More
+1. Clone the repository:
+   ```sh
+   git clone <repo-url>
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. Install dependencies:
+   ```sh
+   npm install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Set up your OpenWeatherMap API key in `.env.local`:
+   ```sh
+   NEXT_PUBLIC_WEATHER_KEY=<your_api_key>
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. Run the development server:
+   ```sh
+   npm run dev
+   ```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Explore weather conditions with ease and style! Contributions are welcome—feel free to submit issues or pull requests.
