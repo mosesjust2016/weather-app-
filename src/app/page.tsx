@@ -13,15 +13,63 @@ import WeatherDetails from "@/components/WeatherDetails";
 import { metersToKilometers } from "@/utils/metersToKilometers";
 import { convertWindSpeed } from "@/utils/convertWindSpeed";
 import ForecastWeatherDetail from "@/components/ForecastWeatherDetail";
-import { placeAtom } from "./atom";
+import { placeAtom, loadinCityAtom } from "./atom";
 import { useAtom } from "jotai";
 import { useEffect } from "react";
-import { loadinCityAtom } from "./atom";
 
-// Removed unused 'Image' import
-// Assuming 'WeatherData' was a type defined here, removed it if unused
+// Define the WeatherEntry type based on OpenWeather API response
+interface WeatherEntry {
+  dt: number;
+  dt_txt: string;
+  weather: { icon: string; description: string }[];
+  main: {
+    temp: number;
+    feels_like: number;
+    temp_min: number;
+    temp_max: number;
+    pressure: number;
+    humidity: number;
+  };
+  visibility: number;
+  wind: { speed: number };
+}
+
+interface WeatherData {
+  list: WeatherEntry[];
+  city: {
+    name: string;
+    sunrise: number;
+    sunset: number;
+  };
+}
 
 const apiKey = process.env.NEXT_PUBLIC_WEATHER_KEY;
+
+// Helper to validate and format dates safely
+const safeFormat = (
+  dateValue: string | number | undefined,
+  dateFormat: string,
+  fallback: string = "N/A"
+): string => {
+  try {
+    if (!dateValue && dateValue !== 0) return fallback;
+
+    if (typeof dateValue === "number") {
+      return format(fromUnixTime(dateValue), dateFormat);
+    }
+    if (typeof dateValue === "string") {
+      return format(parseISO(dateValue), dateFormat);
+    }
+
+    return fallback;
+  } catch (e: unknown) {
+    console.error("Date formatting error:", (e as Error).message, { dateValue });
+    return fallback;
+  }
+};
+
+// Helper to ensure a valid icon string
+const getSafeIcon = (icon: string | undefined): string => icon ?? "01d";
 
 function HomeSkeleton() {
   return (
@@ -90,16 +138,16 @@ export default function Home() {
   const [place] = useAtom(placeAtom);
   const [loadingCity] = useAtom(loadinCityAtom);
 
-  const { isPending, error, data, refetch } = useQuery({
-    queryKey: ['repoData'],
+  const { isPending, error, data, refetch } = useQuery<WeatherData>({
+    queryKey: ["repoData", place],
     queryFn: async () => {
       try {
-        const response = await axios.get(
+        const response = await axios.get<WeatherData>(
           `https://api.openweathermap.org/data/2.5/forecast?q=${place}&appid=${apiKey}&cnt=56`
         );
         return response.data;
-      } catch {
-        throw new Error('Error fetching data');
+      } catch (err) {
+        throw new Error("Error fetching data");
       }
     },
   });
@@ -108,120 +156,127 @@ export default function Home() {
     refetch();
   }, [place, refetch]);
 
-  const firstData = data?.list[0];
+  const firstData = data?.list?.[0];
 
-
-  interface WeatherEntry {
-    dt: number;
-    dt_txt: string;
-    weather: { icon: string }[];
-    main: { temp: number };
-  }
-  
-  
   const uniqueDates = [
     ...new Set(
-      data?.list.map((entry: WeatherEntry) =>
+      data?.list?.map((entry: WeatherEntry) =>
         new Date(entry.dt * 1000).toISOString().split("T")[0]
       )
     ),
   ];
-  
 
-  const firstDataForEachDate = uniqueDates.map((date) => {
-    return data?.list.find((entry: { dt: number }) => {
+  const firstDataForEachDate = uniqueDates.map((date: string) =>
+    data?.list?.find((entry: WeatherEntry) => {
       const entryDate = new Date(entry.dt * 1000).toISOString().split("T")[0];
       const entryTime = new Date(entry.dt * 1000).getHours();
       return entryDate === date && entryTime >= 6;
-    });
-  });
-  
+    })
+  );
 
   if (isPending || loadingCity) return <HomeSkeleton />;
-
-  if (error) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <p>Error fetching data</p>
-    </div>
-  );
+  if (error)
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Error fetching data: {error.message}</p>
+      </div>
+    );
 
   return (
     <div className="flex flex-col gap-4 bg-gray-100 min-h-screen">
-      <Navbar location={data?.city.name} />
+      <Navbar location={data?.city?.name ?? "Unknown"} />
       <main className="px-3 max-w-7xl mx-auto flex flex-col gap-9 w-full pb-10 pt-4">
         <section className="space-y-4">
           <div className="space-y-2">
             <div className="flex gap-1 items-end">
               <h2 className="text-2xl">
-                {format(parseISO(firstData.dt_txt ?? ''), 'EEEE')}
+                {safeFormat(firstData?.dt_txt, "EEEE")}
                 <span className="text-lg ml-1">
-                  ({format(parseISO(firstData.dt_txt ?? ''), 'dd.MM.yyy')})
+                  ({safeFormat(firstData?.dt_txt, "dd.MM.yyyy")})
                 </span>
               </h2>
             </div>
             <Container className="gap-10 px-6 items-center">
               <div className="flex flex-col px-4">
                 <span className="text-5xl">
-                  {convertKelvinToCelsius(firstData?.main.temp ?? 0)}°
+                  {convertKelvinToCelsius(firstData?.main?.temp ?? 0)}°
                 </span>
                 <p className="text-xs space-x-1 whitespace-nowrap">
                   <span>Feel Like</span>
-                  <span>{convertKelvinToCelsius(firstData?.main.feels_like ?? 0)}°</span>
+                  <span>
+                    {convertKelvinToCelsius(firstData?.main?.feels_like ?? 0)}°
+                  </span>
                 </p>
                 <p className="text-xs space-x-2">
-                  <span>{convertKelvinToCelsius(firstData?.main.temp_min ?? 0)}°↑</span>
-                  <span>{convertKelvinToCelsius(firstData?.main.temp_max ?? 0)}°↓</span>
+                  <span>
+                    {convertKelvinToCelsius(firstData?.main?.temp_min ?? 0)}°↑
+                  </span>
+                  <span>
+                    {convertKelvinToCelsius(firstData?.main?.temp_max ?? 0)}°↓
+                  </span>
                 </p>
               </div>
               <div className="flex gap-10 sm:gap-16 overflow-x-auto w-full justify-between pr-3">
-              {data?.list.map((d: WeatherEntry, i: number) => (
-                <div key={i} className="flex flex-col justify-between gap-2 items-center text-xs font-semibold">
-                  <p className="whitespace-nowrap">{format(parseISO(d.dt_txt ?? ''), 'h.mm a')}</p>
-                  <WeatherIcon iconName={getDayOrNightIcon(d.weather[0].icon, d.dt_txt)} />
-                  <p>{convertKelvinToCelsius(d?.main.temp ?? 0)}°</p>
-                </div>
-              ))}
-
-
+                {data?.list?.map((d: WeatherEntry, i: number) => (
+                  <div
+                    key={i}
+                    className="flex flex-col justify-between gap-2 items-center text-xs font-semibold"
+                  >
+                    <p className="whitespace-nowrap">
+                      {safeFormat(d.dt_txt, "h:mm a")}
+                    </p>
+                    <WeatherIcon
+                      iconName={getDayOrNightIcon(getSafeIcon(d.weather?.[0]?.icon), d.dt_txt)}
+                    />
+                    <p>{convertKelvinToCelsius(d?.main?.temp ?? 0)}°</p>
+                  </div>
+                ))}
               </div>
             </Container>
           </div>
           <div className="flex gap-4">
             <Container className="w-fit justify-center flex-col px-4 items-center">
-              <p className="capitalize text-center">{firstData.weather[0].description}</p>
-              <WeatherIcon iconName={getDayOrNightIcon(firstData.weather[0].icon, firstData.dt_txt)} />
+              <p className="capitalize text-center">
+                {firstData?.weather?.[0]?.description ?? "N/A"}
+              </p>
+              <WeatherIcon
+                iconName={getDayOrNightIcon(
+                  getSafeIcon(firstData?.weather?.[0]?.icon),
+                  firstData?.dt_txt
+                )}
+              />
             </Container>
             <Container className="bg-yellow-300/80 px-6 gap-4 justify-between overflow-x-auto flex flex-wrap">
-              <WeatherDetails 
-                visibility={metersToKilometers(firstData?.visibility ?? 10000)} 
-                airPressure={`${firstData?.main.pressure} hPa`}
-                humidity={`${firstData?.main.humidity} %`}
-                sunrise={format(fromUnixTime(data.city.sunrise ?? 1702989452), "H:mm")}
-                sunset={format(fromUnixTime(data.city.sunset ?? 1702989452), "H:mm")}
-                WindSpeed={convertWindSpeed(firstData?.wind.speed ?? 1.64)}
+              <WeatherDetails
+                visibility={metersToKilometers(firstData?.visibility ?? 10000)}
+                airPressure={`${firstData?.main?.pressure ?? 0} hPa`}
+                humidity={`${firstData?.main?.humidity ?? 0} %`}
+                sunrise={safeFormat(data?.city?.sunrise, "H:mm")}
+                sunset={safeFormat(data?.city?.sunset, "H:mm")}
+                WindSpeed={convertWindSpeed(firstData?.wind?.speed ?? 1.64)}
               />
             </Container>
           </div>
         </section>
         <section className="flex w-full flex-col gap-4">
           <p className="text-2xl">Forecast (7 Day)</p>
-          {firstDataForEachDate.map((d, i) => (
+          {firstDataForEachDate.map((d: WeatherEntry | undefined, i: number) => (
             <ForecastWeatherDetail
               key={i}
-              description={d?.weather[0].description ?? ""}
-              weatherIcon={d?.weather[0].icon ?? "01d"}
-              date={format(parseISO(d?.dt_txt ?? ""), "dd,MM")}
-              day={format(parseISO(d?.dt_txt ?? ""), "EEEE")}
-              feels_like={d?.main.feels_like ?? 0}
-              temp={d?.main.temp ?? 0}
-              temp_max={d?.main.temp_max ?? 0}
-              temp_min={d?.main.temp_min ?? 0}
+              description={d?.weather?.[0]?.description ?? ""}
+              weatherIcon={getSafeIcon(d?.weather?.[0]?.icon)}
+              date={safeFormat(d?.dt_txt, "dd.MM")}
+              day={safeFormat(d?.dt_txt, "EEEE")}
+              feels_like={d?.main?.feels_like ?? 0}
+              temp={d?.main?.temp ?? 0}
+              temp_max={d?.main?.temp_max ?? 0}
+              temp_min={d?.main?.temp_min ?? 0}
               visibility={metersToKilometers(firstData?.visibility ?? 10000)}
-              airPressure={`${d?.main.pressure} hPa`}
-              humidity={`${d?.main.humidity} %`}
-              sunrise={format(fromUnixTime(data?.city.sunrise ?? 1702989452), "H:mm")}
-              sunset={format(fromUnixTime(data?.city.sunset ?? 1702989452), "H:mm")}
-              WindSpeed={convertWindSpeed(d?.wind.speed ?? 1.64)}
+              airPressure={`${d?.main?.pressure ?? 0} hPa`}
+              humidity={`${d?.main?.humidity ?? 0} %`}
+              sunrise={safeFormat(data?.city?.sunrise, "H:mm")}
+              sunset={safeFormat(data?.city?.sunset, "H:mm")}
+              WindSpeed={convertWindSpeed(d?.wind?.speed ?? 1.64)}
             />
           ))}
         </section>
