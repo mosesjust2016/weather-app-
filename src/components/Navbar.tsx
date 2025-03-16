@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { MdWbSunny, MdOutlineLocationOn } from "react-icons/md";
-import SearchBox from './SearchBox';
-import axios from 'axios';
-import { useAtom } from 'jotai';
-import { loadinCityAtom, placeAtom } from '@/app/atom';
+import SearchBox from "./SearchBox";
+import axios from "axios";
+import { useAtom } from "jotai";
+import { placeAtom, loadingCityAtom } from "@/app/atom"; // Fixed typo: loadinCityAtom -> loadingCityAtom
 
 type Props = { location?: string };
 
@@ -21,7 +21,7 @@ const Navbar = ({ location }: Props) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [, setPlace] = useAtom(placeAtom);
-  const [, setLoadingCity] = useAtom(loadinCityAtom);
+  const [, setLoadingCity] = useAtom(loadingCityAtom); // Fixed typo here
 
   function handleSuggestionOnClick(value: string) {
     setCity(value);
@@ -54,7 +54,7 @@ const Navbar = ({ location }: Props) => {
         );
         const suggestions = response.data.list.map((item) => item.name);
         setSuggestions(suggestions);
-        setError('');
+        setError("");
         setShowSuggestions(true);
       } catch {
         setSuggestions([]);
@@ -101,7 +101,7 @@ function SuggestionsBox({
   showSuggestions,
   suggestions,
   handleSuggestionOnClick,
-  error
+  error,
 }: {
   showSuggestions: boolean;
   suggestions: string[];

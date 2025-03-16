@@ -1,5 +1,4 @@
 import { atom } from "jotai";
 
-export const placeAtom = atom("Zambia");
-
-export const loadinCityAtom = atom(false);
+export const placeAtom = atom<string>("Lusaka");
+export const loadingCityAtom = atom<boolean>(false); 
