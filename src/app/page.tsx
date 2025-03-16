@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
@@ -13,7 +13,7 @@ import WeatherDetails from "@/components/WeatherDetails";
 import { metersToKilometers } from "@/utils/metersToKilometers";
 import { convertWindSpeed } from "@/utils/convertWindSpeed";
 import ForecastWeatherDetail from "@/components/ForecastWeatherDetail";
-import { placeAtom, loadingCityAtom } from "./atom"; // Updated to loadingCityAtom
+import { placeAtom, loadingCityAtom } from "@/app/atom";
 import { useAtom } from "jotai";
 import { useEffect } from "react";
 
@@ -136,7 +136,7 @@ function HomeSkeleton() {
 
 export default function Home() {
   const [place] = useAtom(placeAtom);
-  const [loadingCity] = useAtom(loadingCityAtom); // Updated from loadinCityAtom
+  const [loadingCity] = useAtom(loadingCityAtom);
 
   const { isPending, error, data, refetch } = useQuery<WeatherData>({
     queryKey: ["repoData", place],
@@ -146,7 +146,7 @@ export default function Home() {
           `https://api.openweathermap.org/data/2.5/forecast?q=${place}&appid=${apiKey}&cnt=56`
         );
         return response.data;
-      } catch (err) {
+      } catch (_err) {  // Fixed: Renamed to _err to suppress ESLint error
         throw new Error("Error fetching data");
       }
     },
